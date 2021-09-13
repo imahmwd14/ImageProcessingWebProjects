@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU"
+      crossorigin="anonymous"
+    />
+
+    <title>Convolution</title>
+  </head>
+  <body class="d-flex flex-column align-items-center gap-1 p-2">
+    <div class="d-flex align-self-stretch gap-1">
+      <label class="display-6" for="imageUrl">Image URL</label>
+      <input
+        class="align-self-stretch flex-fill"
+        type="url"
+        name="imageUrl"
+        id="imageUrl"
+        placeholder="https://example.org/pic.png"
+        value="https://images.unsplash.com/photo-1557851013-cd94fb6c92db?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=675&q=80"
+      />
+    </div>
+    <div class="h-50 d-flex p-1">
+      <canvas id="cnvx0" class="img-fluid w-50"></canvas>
+      <canvas id="cnvx1" class="img-fluid w-50"></canvas>
+    </div>
+    <button id="apply_btn" class="button btn-primary align-self-stretch">
+      Apply
+    </button>
+    <div class="d-flex align-self-stretch"></div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ"
+      crossorigin="anonymous"
+    ></script>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+      integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+
+    <script>
+      let cnvx0 = $("#cnvx0")[0];
+      let cnvx1 = $("#cnvx1")[0];
+
+      let imageUrl = $("#imageUrl")[0];
+      let btn_apply = $("#apply_btn")[0];
+
+      console.log(btn_apply);
+
+      let ctx0 = cnvx0.getContext("2d");
+      let ctx1 = cnvx1.getContext("2d");
+
+      let img = new Image();
+
+      let loadImage = (link, cnvx, thenDo) => {
+        let ctx = cnvx.getContext("2d");
+
+        img.src = link;
+        img.crossOrigin = "Anonymous";
+
+        img.onload = function () {
+          // Use the intrinsic size of image in CSS pixels for the canvas element
+          cnvx.width = this.naturalWidth;
+          cnvx.height = this.naturalHeight;
+
+          ctx.drawImage(this, 0, 0);
+
+          thenDo();
+        };
+      };
+
+      let getGrayscaledImage = (cnvx) => {
+        let ctx = cnvx.getContext("2d");
+        let imageData = ctx.getImageData(0, 0, cnvx.width, cnvx.height);
+        let data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          let avg = 0;
+          for (let j = i; j < i + 3; j++) {
+            avg += data[j];
+          }
+          for (let j = i; j < i + 3; j++) {
+            data[j] = avg / 3;
+          }
+          data[i + 3] = 255;
+        }
+        return imageData;
+      };
+
+      let setDrawingContent = (img, cnvx, imageData) => {
+        cnvx.width = img.naturalWidth;
+        cnvx.height = img.naturalHeight;
+        let ctx = cnvx.getContext("2d");
+        ctx.putImageData(imageData, 0, 0);
+      };
+
+      let updateContents = () => {
+        loadImage(imageUrl.value, cnvx0, () => {
+          setDrawingContent(img, cnvx1, getGrayscaledImage(cnvx0));
+        });
+      };
+
+      function getSingleDigitArray(data) {
+        let newArr = [];
+        for (let i = 0; i < data.length; i += 4) {
+          let avg = 0;
+          for (let j = i; j < i + 3; j++) {
+            avg += data[j];
+          }
+          newArr.push(parseInt(avg / 3));
+        }
+        return newArr;
+      }
+
+      function drawFromSinglePixelArray(newArr, cnvx1, img_data) {
+        let data = img_data.data;
+        let ctx1 = cnvx1.getContext("2d");
+        for (let i = 0; i < newArr.length; i++) {
+          for (let j = i * 4; j < i * 4 + 3; j++) {
+            data[j] = newArr[i];
+          }
+          data[i * 4 + 3] = 255;
+        }
+        ctx1.clearRect(0, 0, cnvx1.width, cnvx1.height);
+        ctx1.putImageData(img_data, 0, 0);
+      }
+
+      function getMatrix(arr, arr_width) {
+        let mat = [];
+        for (let i = 0; i < arr.length / arr_width; i++) {
+          mat[i] = new Array(arr_width);
+        }
+        for (let i = 0; i < mat.length; i++) {
+          for (let j = 0; j < mat[i].length; j++) {
+            mat[i][j] = arr[i];
+          }
+        }
+        return mat;
+      }
+
+      function getConvolutionResult(arr, arr_width) {
+        let mat = getMatrix(arr, arr_width);
+      }
+
+      imageUrl.addEventListener("input", (e) => {
+        updateContents();
+      });
+      imageUrl.dispatchEvent(new Event("input"));
+
+      btn_apply.addEventListener("click", (e) => {
+        let img_data = ctx0.getImageData(0, 0, cnvx0.width, cnvx0.height);
+        let data = img_data.data;
+        // Generate an array with each index representing a pixel
+        let newArr = getSingleDigitArray(data);
+        // Draw the new array
+        let convolutedArray = getConvolutionResult(newArr, cnvx0.width);
+        drawFromSinglePixelArray(newArr, cnvx1, img_data);
+      });
+    </script>
+  </body>
+</html>
